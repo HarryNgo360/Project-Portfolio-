@@ -1,0 +1,261 @@
+---
+title: "BNM 864_Coursework"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Exploratory data analysis (EDA) project
+
+
+This EDA project will use the data from the dataset wage1.csv (Data on employees, i.e. their hourly wage, gender, race, marital status, etc.) to analyse the dataset and thus, build a linear regression model to calculate the Hourly wage of employees from the dataset.
+
+The following steps will be conducted to implement the project
+
+### 1. Load a dataset from a CSV file
+```{r}
+# Load the dataset into a dataframe
+df = read.csv("wage1.csv")
+# Inspect the first few rows of the dataset
+head (df)
+```
+Inspect the colums and their data type.
+```{r}
+# Use str() function to get the structure of the dataset
+str(df)
+```
+The Dataset "Wage1" contains 525 observations (N=525) and 7 variables, including 4 numerical variables and 3 categorical variables.
+
+### 2. Display the descriptive statistics on the dataset. 
+```{r}
+# Provide a statistic summary on the dataset using summary() function
+summary(df)
+```
+From the summary data, we can have a sense on the variation of values of each numerical variables of Wage1 dataset, such as their average values, ranges (minimum and maximum values) and quartiles. The dataset also shows that, for 3 categorical variables, which are "married", "gender" and "race", the values in each  are divided into 2 level with no missing data.
+
+### 3. Build a graph visualising (some of) the numerical variables of the dataset
+
+Create a Scatterplot between the 2 numerical variables "Hourly_wage" and "Years_in _employment" to inspect whether a relationship existing between them.
+```{r}
+# Retrieve a subset data from the dataset with 2 numerical variables,
+# which are "hourly_wage" and "years_in_employment"
+subset.data = subset(df, select = c("hourly_wage", "years_in_employment", "years_in_education"))
+
+#install.packages("ggplot2")
+library(ggplot2)
+
+# Plot the relationship between hourly_wage with years_in_employment and years_in_education
+# and titling the graphs
+plot(subset.data$hourly_wage, subset.data$years_in_employment, xlab = "Years in employment", ylab = "Hourly wage", pch = 16, col = "blue",
+     main = " Scatterplot of Hourly wage vs. Years in employment")
+plot(subset.data$hourly_wage, subset.data$years_in_education, xlab = "Years in education", ylab = "Hourly wage", pch = 16, col = "blue",
+     main = " Scatterplot of Hourly wage vs. Years in education")
+```
+
+### 4. Check if any records in the data have any missing values, then handle the missing data as appropriate (interpolate missing values, delete records with missing values, etc).
+```{r}
+# Sum all the TRUE values of is.na() from the dataset by column
+colSums(is.na(df))
+```
+\ Additionally, we can inspect the na values by looking at the p_na (percentage of na values in the dataset) and unique values using the df_status() function in "funModelling" package
+```{r}
+# Load the "funModelling" package
+library(funModeling) 
+# Use df_status function to get inspect the data types, unique and missing values
+df_status(df)
+```
+
+\ Base on the results above, we can state that there is no missing values in the dataset Wage1, therefore, we don't need further steps to handle the missing data.
+
+### 5. Check if any variables in the dataset have outliers
+
+```{r}
+# Load the library (reshape)
+library(reshape)
+# Create boxplot graph on each variable of the dataset
+meltData = melt(df)
+p = ggplot(meltData, aes(factor(variable), value)) 
+p + geom_boxplot() + facet_wrap(~variable, scale="free")
+```
+
+It is evident that the dataset has a lot of outliers. This will have a negative effect on the result when we start building the model later. We can handle with these outliers by spotting and deleting some of the highest and lowest values in each column from the dataset.
+
+
+### 6. Display the distribution of (some of) numerical variables as histograms and Provide verbal comments on the graph.
+
+6.1 Display the distribution of hourly wage variable as histogram
+```{r}
+# Choose the hourly_wage variable in the dataset as an object
+Hourly_wage = df$hourly_wage
+# Create histogram 
+hist(Hourly_wage, col = "lightblue", breaks = 30)
+```
+
+The hisogram shows that the hourly wage values seemingly follow a normality distribution with a left-skew bell shape.
+
+6.2 Display the distribution of years in emploment variable as histogram
+```{r}
+# Choose the years_in_employment variable in the dataset as object
+Years_in_employment = df$years_in_employment
+# Create histogram 
+hist(Years_in_employment, col = "lightblue", breaks=30)
+```
+
+With the Years in employment variable, a vast majority of values falls into the first 25 percentile of the dataset and the variable apparently do not follow the normal distribution
+
+
+### 7. Display unique values of a categorical variable.
+```{r}
+# create a table with counts of unique values of gender variable 
+table(df$gender)
+```
+
+### 8. Build a contingency table of two potentially related categorical variables. Conduct a statistical test of the independence between the variables. 
+```{r}
+# Use xtabs() function to create a crosstabulations between "gender" and 
+# "married" variables
+xtabs(~ gender + married, data = df)
+```
+Conduct a Chi-square test to examine the independence of the 2 catrgorical variables, with:
+
+H0: The two variables are independent.\
+H1: The two variables are related to each other.
+
+```{r}
+# Use the chisq.test() function and set `correct=FALSE` to turn off Yates’ continuity correction
+chisq.test(df$gender, df$married, correct = FALSE)
+```
+
+Because the p-Value is less than the significance level of 0.05, then we reject the null hypothesis and conclude that the two variables are dependent.In other words, the gender of employees and their marital status are relate to each other.
+
+### 9. Retrieve a subset of the data based on two or more criteria and present descriptive statistics on the subset. 
+
+Let's take a subset of the data based on the following criteria:\
+- people who have more than 12 years in education and\
+- people who have at least 2 years in employment and\
+- people who are white
+```{r}
+# Take a subset of the data using subset() function
+subset_df = subset(df, df$years_in_education>12 & df$years_in_employment>=2 & df$race == "white")
+# Inspect the new dataset 
+str (subset_df)
+```
+Thus, present the descriptive analytics based on the new subset
+```{r}
+# Use summary() function to get statistic metrics on the subset
+summary(subset_df)
+```
+Base on the results summarised, the above subset has 123 observations, including 47 males and 76 females, 83 married. On the average, these employees have 15 years in education, have worked for more than 8 years and have an hourly wage of 8.424.
+
+### 10. Conduct a statistical test of the significance of the difference between the means of two subsets of the data. Provide verbal comments.\
+Select the 2 following subsets:\
+- Subset_1: Hourly wage of White employees with more than 3 years in employment\
+- Subset_2: Hourly wage of Non-white employees with more than 3 years in employment\
+```{r}
+# Take the subset 1 from the data using subset function and select the Hourly wage variable only
+subset_1 = subset(df, df$race == "white" & df$years_in_employment >= "2", select = c("hourly_wage"))
+# Take the subset 2 from the data using subset function and select the Hourly wage variable only
+subset_2 = subset(df, df$race == "nonwhite" & df$years_in_employment >= "2", select = c("hourly_wage"))
+# Take a glance at the subset 1 and subset 2
+str(subset_1)
+str(subset_2)
+```
+Conduct a statistical test of the significance of the difference between the means in hourly wage of the two subsets above.\
+Because the number of samples in each dataset is greater than 30, so we can use the 2-sample t-test to examine if there is any difference in the hourly wage of white and non-white employees with more than 2 years in employment\
+H0: m = 0\
+Ha: m ≠ 0
+```{r}
+# Conduct the t-test
+t.test(subset_1,subset_2,)
+```
+The p-value > 0.05, we accept the Null hypothesis 
+\=> There is no difference in the mean of the 2 subsets or the difference between the average hourly wage of white and non-white employees is insignificant.
+
+### 11. Create pivot tables, i.e., create a table that groups the data by a certain categorical variable and displays summaries for each categorical variable. Provide verbal comments.
+
+```{r}
+ftable(gender ~ married + race, data = df)
+```
+The number of male and female employees is quite similar. The number of married people is about 100 greater than the unmarried. In both these group, the white employees are the major.
+
+### 12. Implement a linear regression model and interpret its output.
+
+Since the dataset has categorical variables which should be converted into dummy variables in order to build the linear regression model, so the first step is to make a duplicate of the orginal dataset, then create dummy variables using "fastDummies" library
+```{r}
+# Copy the dataset using function data.frame()
+copy = data.frame(df)
+# Inspect the first few rows of the dataset
+head (copy)
+```
+
+```{r}
+# Install the "fastDummies" package and load from the library
+library(fastDummies)
+# Create the dummy variables using the dummy_cols() function with the duplicated 
+# dataset named df1, select_columns = NULL to apply for all factors in the dataset, 
+# and remove_first_dummy = TRUE to advoid multicollinearity issues in model
+df2 = dummy_cols(copy, select_columns = NULL, remove_first_dummy = TRUE)
+head (df2)
+```
+\ Base on the processed dataset "df1", start building the model
+```{r}
+# Build the model
+model = lm(Hourly_wage ~ married_true + gender_male + race_white + years_in_education + years_in_employment + num_dependents, data = df2)
+
+#View the summary
+summary(model)
+```
+##### 1. Coefficients on the variables. 
+The derived model based on estimated coefficients:
+
+Hourly_wage = -3.1607 + 0.6266 * married_true - 1.1702 * gender_male + 0.0979 * race_white + 0.5399 * years_in_education + 0.1558 * years_in_employment + 0.1088 * num_dependents + e.
+
+The estimate coefficient column depicts that all of the independent variables are directly proportional to the dependent variables, i.e. the higher the years of an employee in education and employment, the higher his/her salary is. It will be higher if they are white, male and married.
+
+
+##### 2. Significance of the variables
+
+The p-value in Pr(>|t|) column show that Years in education, Years in employment and gender are the most significant variables of the model, in which Years in education is the most significant one.
+The race_white and  num_dependents variables do not have statistical meaning. We could remove it then to improve the model
+
+##### 3. Quality of the model
+
+The R2  and the adjusted R2 values are relatively low, under 0.5. It means that the above independent variables could only explain about 35% the hourly wage
+
+
+Improve the model by removing the 2 insignificant variables
+```{r}
+# Build the new model
+new_model = lm(Hourly_wage ~ married_true + gender_male + years_in_education + years_in_employment, data = df2)
+
+#View the summary
+summary(new_model)
+```
+
+The adjusted R2 slightly increased though not much. It proves that the model is improved by removing those 2 variables
+
+Test the validation of the new model
+```{r}
+# Compute the standardized residual
+st_resids = rstandard(new_model)
+# Plot the residuals
+plot(x=new_model$fitted.values, y=st_resids, abline(h=0), ylab="Standardized residuals", xlab="Fitted values", main = "Residual plot")
+```
+```{r}
+# Create the histogram of the residuals 
+hist(st_resids, xlab="Standardized residuals", breaks=10)
+```
+
+The histogram of the residuals has a bell shape, hence the assumption on the normality distribution is confirmed. The residual values scatter equally around the zero value as the fitted values increase and independent with each other, therefore the assupmtions on homoscedasticity, E(ε) = 0 and independence of residuals error terms are confirmed.
+
+Since then, the model is validated.
+
+The analysis above at a foundation level have:
+- inspected and cleaned the dataset, 
+- detected the relationships between the variables and conduct some hypothesis testings and
+- proposed a validated regression model to help predict the Hourly wage of employees
+
+
